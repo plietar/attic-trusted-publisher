@@ -1,0 +1,22 @@
+name: "Test"
+on:
+  push:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+    - uses: wimpysworld/nothing-but-nix@main
+    - uses: cachix/install-nix-action@v31
+
+    - run: |
+        nix run --inputs-from . nixpkgs#attic-client -- login default https://attic.lietar.net $(nix run .#attic-trusted-publisher -- login https://attic.lietar.net)
+        nix run --inputs-from . nixpkgs#attic-client -- cache info default:attic-trusted-publisher
+
+    - run: nix build .#attic-trusted-publisher
+
+    - run: |
+        nix run --inputs-from . nixpkgs#attic-client push default:attic-trusted-publisher result
