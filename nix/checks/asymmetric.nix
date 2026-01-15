@@ -63,6 +63,7 @@
       });
 
       testScript = ''
+        start_all()
         server.wait_for_unit("default.target")
         client.wait_for_unit("default.target")
 

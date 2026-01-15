@@ -1,5 +1,7 @@
 use axum::extract::{Json, State};
+use axum::response::{IntoResponse, Response};
 use axum::{Router, routing::post};
+use http::status::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
@@ -17,14 +19,31 @@ pub struct TokenResponse {
     pub token: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApiError {
+    pub error: String,
+}
+
+impl IntoResponse for crate::Error {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(ApiError {
+                error: self.to_string(),
+            }),
+        )
+            .into_response()
+    }
+}
+
 #[axum::debug_handler]
 async fn token_endpoint(
     State(config): State<Arc<Config>>,
     Json(request): Json<TokenRequest>,
-) -> Json<TokenResponse> {
-    let token = crate::exchange(&request.token, &config).await.unwrap();
-    println!("Issuing token: {token}");
-    Json(TokenResponse { token: token })
+) -> Result<Json<TokenResponse>, crate::Error> {
+    crate::exchange(&request.token, &config)
+        .await
+        .map(|token| Json(TokenResponse { token }))
 }
 
 pub async fn run(listen: &str, config: Config) -> anyhow::Result<()> {

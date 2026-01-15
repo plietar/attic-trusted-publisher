@@ -1,5 +1,6 @@
+use crate::Error;
 use crate::config::{Config, Policy};
-use anyhow::{Context, bail};
+use anyhow::Context;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::TokenData;
@@ -7,12 +8,6 @@ use jsonwebtoken::Validation;
 use jsonwebtoken::jwk::{Jwk, JwkSet, KeyAlgorithm};
 use serde::Deserialize;
 use std::collections::HashMap;
-
-pub enum VerifierError {
-    CannotFetchKey(anyhow::Error),
-    InvalidClaim { claim: String },
-    EmptyRequiredClaims,
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct UnverifiedClaims {
@@ -72,23 +67,25 @@ pub async fn resolve_key(issuer: &str, kid: &str) -> anyhow::Result<Jwk> {
         .ok_or_else(|| anyhow::anyhow!("Unknown key"))
 }
 
-pub fn check_claims(policy: &Policy, claims: &Claims) -> Result<(), VerifierError> {
+pub fn check_claims(policy: &Policy, claims: &Claims) -> Result<(), Error> {
     if policy.required_claims.is_empty() {
-        bail!("Policy has empty required claims, refusing to proceed.");
+        return Err(Error::EmptyPolicyClaims);
     }
 
     if claims.iss.as_deref() != Some(&policy.issuer) {
-        bail!("Invalid issuer");
+        panic!("issuer is invalid - this should not be possible");
     }
 
     for (key, expected) in &policy.required_claims {
         match claims.get(key) {
             Some(actual) => {
                 if actual != *expected {
-                    bail!("Invalid value for claim {key}");
+                    return Err(Error::InvalidClaim { claim: key.into() });
                 }
             }
-            None => bail!("Missing required claim {key}"),
+            None => {
+                return Err(Error::InvalidClaim { claim: key.into() });
+            }
         }
     }
     Ok(())
@@ -113,13 +110,17 @@ pub fn key_algorithm(key: &Jwk) -> anyhow::Result<Algorithm> {
     }
 }
 
-pub async fn verify<'a>(token: &str, config: &'a Config) -> anyhow::Result<(Claims, &'a Policy)> {
+pub async fn verify<'a>(token: &str, config: &'a Config) -> Result<(Claims, &'a Policy), Error> {
     let unverified_token = UnverifiedClaims::decode(&token).context("Cannot decode token")?;
     let Some(candidate_policies) = config.policies.get(&unverified_token.claims.iss) else {
-        bail!("Unknown issuer: {}", unverified_token.claims.iss);
+        return Err(Error::InvalidClaim {
+            claim: "iss".into(),
+        });
     };
     let Some(kid) = unverified_token.header.kid else {
-        bail!("Token header does not have a key ID");
+        return Err(Error::Other(anyhow::anyhow!(
+            "Token header does not have a key ID"
+        )));
     };
     let key = resolve_key(&unverified_token.claims.iss, &kid).await?;
 
@@ -131,7 +132,7 @@ pub async fn verify<'a>(token: &str, config: &'a Config) -> anyhow::Result<(Clai
     validation.validate_exp = true;
     validation.validate_nbf = true;
 
-    let decoding_key = DecodingKey::from_jwk(&key)?;
+    let decoding_key = DecodingKey::from_jwk(&key).map_err(anyhow::Error::from)?;
     let decoded: TokenData<Claims> = jsonwebtoken::decode(token, &decoding_key, &validation)
         .context("while decoding ID token")?;
 
@@ -143,5 +144,5 @@ pub async fn verify<'a>(token: &str, config: &'a Config) -> anyhow::Result<(Clai
         }
     }
 
-    bail!("Token did not match any registered policy {:?}", errors);
+    Err(Error::NoValidPolicy(errors).into())
 }

@@ -1,6 +1,35 @@
-use crate::api::{TokenRequest, TokenResponse};
+use crate::api::{ApiError, TokenRequest, TokenResponse};
 use anyhow::Context;
+use anyhow::bail;
+use mime::Mime;
 use serde::Deserialize;
+
+trait CheckError: Sized {
+    async fn check_error(self) -> anyhow::Result<Self>;
+}
+impl CheckError for reqwest::Response {
+    async fn check_error(self) -> anyhow::Result<Self> {
+        let status = self.status();
+        if status.is_client_error() || status.is_server_error() {
+            let is_json = self
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.parse::<Mime>().ok())
+                .map(|value| value.essence_str() == "application/json")
+                .unwrap_or(false);
+
+            if is_json {
+                let body: ApiError = self.json().await?;
+                bail!("{status}: {}", body.error);
+            } else {
+                bail!("{status}: {}", self.text().await?);
+            }
+        } else {
+            Ok(self)
+        }
+    }
+}
 
 async fn github_login(url: &str, token: &str, audience: &str) -> anyhow::Result<String> {
     #[derive(Deserialize)]
@@ -56,8 +85,9 @@ pub async fn login(url: &str, token: Option<&str>) -> anyhow::Result<String> {
         .send()
         .await
         .with_context(|| format!("while sending token exchange request to {endpoint}"))?
-        .error_for_status()
-        .with_context(|| format!("HTTP status error from token exchange request to {endpoint}"))?
+        .check_error()
+        .await
+        .with_context(|| format!("while sending token exchange request to {endpoint}"))?
         .json()
         .await
         .with_context(|| format!("while reading token exchange response from {endpoint}"))?;

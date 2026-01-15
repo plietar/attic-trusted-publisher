@@ -1,7 +1,7 @@
 { self, moduleWithSystem, ... }: {
   perSystem = { pkgs, ... }: {
     checks.reverse-proxy = pkgs.testers.runNixOSTest {
-      name = "basic";
+      name = "reverse-proxy";
 
       nodes.server = moduleWithSystem ({ self', ... }: { pkgs, ... }: {
         imports = [
@@ -12,6 +12,7 @@
         services.atticd = {
           enable = true;
           settings.listen = "127.0.0.1:3000";
+          settings.api-endpoint = "http://server";
           environmentFile = pkgs.runCommand "envfile" { } ''
             cat > $out <<EOF
             ATTIC_SERVER_TOKEN_HS256_SECRET_BASE64=$(echo -n "secret" | base64)

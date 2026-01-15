@@ -13,6 +13,7 @@
             enable = lib.mkEnableOption "attic-trusted-publisher";
             listen = lib.mkOption {
               type = lib.types.str;
+              default = "127.0.0.1:8080";
             };
             settings = lib.mkOption {
               type = format.type;

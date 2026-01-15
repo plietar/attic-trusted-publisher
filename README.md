@@ -123,6 +123,9 @@ only defines endpoints under `/_trusted-publisher`:
       proxyPass = "http://127.0.0.1:3001";
     };
   };
+
+  # Attic wants to know its external URL
+  services.attic.settings.api-endpoint = "http://attic.example.com/";
 }
 ```
 
