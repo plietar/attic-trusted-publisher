@@ -15,8 +15,11 @@ pub struct UnverifiedClaims {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Claims {
+    #[serde(default)]
     pub iss: Option<String>,
+    #[serde(default)]
     pub sub: Option<String>,
+    #[serde(default)]
     pub exp: Option<u64>,
 
     #[serde(flatten)]
@@ -123,7 +126,8 @@ pub async fn verify<'a>(token: &str, config: &'a Config) -> anyhow::Result<(Clai
     validation.validate_nbf = true;
 
     let decoding_key = DecodingKey::from_jwk(&key)?;
-    let decoded: TokenData<Claims> = jsonwebtoken::decode(token, &decoding_key, &validation)?;
+    let decoded: TokenData<Claims> = jsonwebtoken::decode(token, &decoding_key, &validation)
+        .context("while decoding ID token")?;
 
     let mut errors = Vec::new();
     for policy in candidate_policies {

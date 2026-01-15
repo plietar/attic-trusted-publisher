@@ -1,8 +1,8 @@
-use base64::{Engine, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
 use itertools::Itertools;
 use jsonwebtoken::{Algorithm, EncodingKey};
-use serde::Deserialize;
 use serde::de;
+use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::time::Duration;
@@ -35,6 +35,7 @@ fn get_false() -> bool {
 #[serde(deny_unknown_fields)]
 pub struct Policy {
     #[serde(with = "humantime_serde")]
+    #[serde(default)]
     pub duration: Option<Duration>,
     pub issuer: String,
     pub permissions: HashMap<String, Permissions>,

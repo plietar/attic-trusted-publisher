@@ -10,15 +10,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: cachix/install-nix-action@v31
+    - uses: cachix/cachix-action@v16
       with:
-        extra_nix_config: |
-          extra-substituters = https://attic.lietar.net/attic-trusted-publisher
-          extra-trusted-public-keys = attic-trusted-publisher:TdBvIIJcKiGvLbg4iVZfVxC881swdaKZ/A359GfoNBg=
+        name: attic-trusted-publisher
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+    - run: |
+        nix build --no-link --print-out-paths -L .#attic-trusted-publisher > paths.txt
+
+    - run: |
+        nix run --inputs-from . nixpkgs#cachix -- push attic-trusted-publisher < paths.txt
 
     - run: |
         nix run --inputs-from . nixpkgs#attic-client -- login default https://attic.lietar.net $(nix run .#attic-trusted-publisher -- login https://attic.lietar.net)
         nix run --inputs-from . nixpkgs#attic-client -- cache info default:attic-trusted-publisher
-
-    - run: nix build .#attic-trusted-publisher
-    - run: |
-        nix run --inputs-from . nixpkgs#attic-client push default:attic-trusted-publisher result
+        nix run --inputs-from . nixpkgs#attic-client -- push default:attic-trusted-publisher --stdin < paths.txt
