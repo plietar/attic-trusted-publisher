@@ -20,8 +20,10 @@ pub struct Claims {
     pub iss: Option<String>,
     #[serde(default)]
     pub sub: Option<String>,
-    #[serde(default)]
-    pub exp: Option<u64>,
+
+    // For better or worse, jwcrypto already requires an `exp` claim by default anyway so no need
+    // to make this an Option.
+    pub exp: u64,
 
     #[serde(flatten)]
     other: HashMap<String, serde_json::Value>,
@@ -32,7 +34,7 @@ impl Claims {
         match key {
             "iss" => self.iss.clone().map(serde_json::Value::from),
             "sub" => self.sub.clone().map(serde_json::Value::from),
-            "exp" => self.exp.map(serde_json::Value::from),
+            "exp" => Some(serde_json::Value::from(self.exp)),
             _ => self.other.get(key).cloned(),
         }
     }

@@ -78,11 +78,24 @@ Below is an example of a configuration for a GitHub repository:
       push = true;
     };
   }];
+}
 ```
 
 More expressive policy definitions could be supported in the future. For
 instance, once may want to use a claim value in the name of the cache, giving
 each repository its own independent cache. 
+
+### Token lifespan
+
+By default, the lifespan of the issued Attic token is bound to the lifespan of
+the provided ID token.
+
+Some providers only provide very short-lived tokens (for example, GitHub
+Actions tokens only last 5 minutes). To work around these cases, the
+`allow_extending_token_lifespan` option of policies can be set to allow
+long-lived tokens to be issued. The ID token must be valid at the time of the
+exchange, but the issued token will last as long as the policy's `duration`
+option.
 
 ## Client usage
 

@@ -62,34 +62,16 @@ struct AtticTokenBody {
     sub: Option<String>,
     iss: Option<String>,
     aud: Option<HashSet<String>>,
-    exp: Option<u64>,
+    exp: u64,
     iat: u64,
-}
-
-pub fn reduce<T, U, R, F>(left: Option<T>, right: Option<U>, f: F) -> Option<R>
-where
-    T: Into<R>,
-    U: Into<R>,
-    F: FnOnce(T, U) -> R,
-{
-    match (left, right) {
-        (Some(l), Some(r)) => Some(f(l, r)),
-        (Some(l), None) => Some(l.into()),
-        (None, Some(r)) => Some(r.into()),
-        (None, None) => None,
-    }
 }
 
 pub fn issue(claims: &Claims, policy: &Policy, config: &Config) -> Result<String, Error> {
     let iat = jsonwebtoken::get_current_timestamp();
     let exp = if policy.allow_extending_token_lifespan {
-        policy.duration.map(|t| iat + t.as_secs())
+        iat + policy.duration.as_secs()
     } else {
-        reduce(
-            policy.duration.map(|t| iat + t.as_secs()),
-            claims.exp,
-            std::cmp::min,
-        )
+        std::cmp::min(claims.exp, iat + policy.duration.as_secs())
     };
 
     let permissions = policy

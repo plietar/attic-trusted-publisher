@@ -36,7 +36,7 @@ fn get_false() -> bool {
 pub struct Policy {
     #[serde(with = "humantime_serde")]
     #[serde(default)]
-    pub duration: Option<Duration>,
+    pub duration: Duration,
     pub issuer: String,
     pub permissions: HashMap<String, Permissions>,
 
