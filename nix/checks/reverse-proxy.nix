@@ -11,8 +11,10 @@
         networking.firewall.enable = false;
         services.atticd = {
           enable = true;
-          settings.listen = "127.0.0.1:3000";
-          settings.api-endpoint = "http://server";
+          settings = {
+            listen = "127.0.0.1:3000";
+            api-endpoint = "http://server";
+          };
           environmentFile = pkgs.runCommand "envfile" { } ''
             cat > $out <<EOF
             ATTIC_SERVER_TOKEN_HS256_SECRET_BASE64=$(echo -n "secret" | base64)
@@ -21,18 +23,21 @@
         };
         services.attic-trusted-publisher = {
           enable = true;
-          listen = "127.0.0.1:3001";
-          settings.audience = "http://server";
-          settings.policies = [{
-            issuer = "http://server:3002";
-            required_claims.repository = "foo";
-            permissions."*" = {
-              pull = true;
-              push = true;
-              create_cache = true;
-              configure_cache = true;
-            };
-          }];
+          settings = {
+            listen = "127.0.0.1:3001";
+            audience = "http://server";
+            policies = [{
+              issuer = "http://server:3002";
+              duration = "1h";
+              required_claims.repository = "foo";
+              permissions."*" = {
+                pull = true;
+                push = true;
+                create_cache = true;
+                configure_cache = true;
+              };
+            }];
+          };
         };
         services.oidc-test-server = {
           enable = true;

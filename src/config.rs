@@ -1,10 +1,11 @@
-use base64::{Engine, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
 use itertools::Itertools;
 use jsonwebtoken::{Algorithm, EncodingKey};
-use serde::Deserialize;
 use serde::de;
+use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::net::SocketAddr;
 use std::time::Duration;
 
 #[derive(Clone, Debug, Deserialize, better_default::Default)]
@@ -35,7 +36,6 @@ fn get_false() -> bool {
 #[serde(deny_unknown_fields)]
 pub struct Policy {
     #[serde(with = "humantime_serde")]
-    #[serde(default)]
     pub duration: Duration,
     pub issuer: String,
     pub permissions: HashMap<String, Permissions>,
@@ -54,12 +54,12 @@ where
     Ok(policies.into_iter().into_group_map_by(|p| p.issuer.clone()))
 }
 
-const ENV_TOKEN_HS256_SECRET_BASE64: &str = "ATTIC_SERVER_TOKEN_HS256_SECRET_BASE64";
-const ENV_TOKEN_RS256_SECRET_BASE64: &str = "ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64";
-
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    #[serde(default = "default_listen_address")]
+    pub listen: SocketAddr,
+
     pub audience: String,
 
     #[serde(deserialize_with = "deserialize_policies")]
@@ -69,6 +69,7 @@ pub struct Config {
     pub jwt: JWTConfig,
 }
 
+// A lot of the code below was taken from attic's own source code with minor changes.
 #[derive(Clone, derive_more::Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JWTConfig {
@@ -137,6 +138,9 @@ fn read_non_empty_var(key: &str) -> anyhow::Result<Option<String>> {
     }
 }
 
+const ENV_TOKEN_HS256_SECRET_BASE64: &str = "ATTIC_SERVER_TOKEN_HS256_SECRET_BASE64";
+const ENV_TOKEN_RS256_SECRET_BASE64: &str = "ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64";
+
 fn load_token_hs256_secret_from_env() -> Option<JWTSigningConfig> {
     let s = read_non_empty_var(ENV_TOKEN_HS256_SECRET_BASE64)
         .expect("HS256 environment cannot be read")?;
@@ -189,11 +193,16 @@ where
     Ok(key)
 }
 
-pub fn decode_token_hmac_secret_base64(s: &str) -> anyhow::Result<EncodingKey> {
+fn decode_token_hmac_secret_base64(s: &str) -> anyhow::Result<EncodingKey> {
     Ok(EncodingKey::from_base64_secret(s)?)
 }
 
-pub fn decode_token_rsa_secret_base64(s: &str) -> anyhow::Result<EncodingKey> {
+fn decode_token_rsa_secret_base64(s: &str) -> anyhow::Result<EncodingKey> {
     let decoded = BASE64_STANDARD.decode(s)?;
     Ok(EncodingKey::from_rsa_pem(&decoded)?)
+}
+
+fn default_listen_address() -> SocketAddr {
+    // Attic uses 8080 already
+    "[::]:8081".parse().unwrap()
 }

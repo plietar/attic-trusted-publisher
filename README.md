@@ -35,7 +35,7 @@ configuration.
   services.attic-trusted-publisher = {
     enable = true;
     settings = {
-      audience = "http://atp.example.com"; # Must match the aud claim of ID tokens
+      audience = "http://localhost:8081"; # Must match the aud claim of ID tokens
       policies = []; # See below
     };
   };
@@ -103,12 +103,12 @@ The following command obtains an OIDC token based on its environment, exchanges
 it for an attic token and prints the result to the console.
 
 ```
-nix run github:plietar/attic-trusted-publisher login http://atp.example.com
+nix run github:plietar/attic-trusted-publisher login http://localhost:8081
 ```
 
 Most commonly you will want to pass the result to the `attic login` command:
 ```
-attic login myserver http://attic.example.com $(nix run github:plietar/attic-trusted-publisher login http://atp.example.com)
+attic login http://localhost:8080 http://attic.example.com $(nix run github:plietar/attic-trusted-publisher login http://localhost:8081)
 ```
 
 It supports running in GitHub Actions using the `ACTIONS_ID_TOKEN_REQUEST_URL`
@@ -130,15 +130,17 @@ only defines endpoints under `/_trusted-publisher`:
   services.nginx.enable = true;
   services.nginx.virtualHosts."attic.example.com" = {
     locations."/" = {
-      proxyPass = "http://127.0.0.1:3000";
+      proxyPass = "http://127.0.0.1:8080";
     };
     locations."/_trusted-publisher" = {
-      proxyPass = "http://127.0.0.1:3001";
+      proxyPass = "http://127.0.0.1:8081";
     };
   };
 
   # Attic wants to know its external URL
-  services.attic.settings.api-endpoint = "http://attic.example.com/";
+  services.atticd.settings.api-endpoint = "http://attic.example.com/";
+
+  services.attic-trusted-published.settings.audience = "http://attic.example.com";
 }
 ```
 

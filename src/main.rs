@@ -17,9 +17,6 @@ enum Command {
         config: PathBuf,
     },
     API {
-        #[arg(long, default_value = "[::]:3000")]
-        listen: String,
-
         #[arg(long)]
         config: PathBuf,
     },
@@ -69,12 +66,12 @@ async fn main() -> anyhow::Result<()> {
             };
             println!("{}", exchange(&token, &config).await?);
         }
-        Command::API { listen, config } => {
+        Command::API { config } => {
             let config = {
                 let contents = std::fs::read_to_string(&config)?;
                 toml::from_str::<Config>(&contents)?
             };
-            api::run(&listen, config).await?;
+            api::run(config).await?;
         }
         Command::Login { url, token } => {
             println!("{}", client::login(&url, token.as_deref()).await?);

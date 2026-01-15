@@ -20,18 +20,21 @@
         };
         services.attic-trusted-publisher = {
           enable = true;
-          listen = "[::]:3001";
-          settings.audience = "http://server:3001";
-          settings.policies = [{
-            issuer = "http://server:3002";
-            required_claims.repository = "foo";
-            permissions."*" = {
-              pull = true;
-              push = true;
-              create_cache = true;
-              configure_cache = true;
-            };
-          }];
+          settings = {
+            listen = "[::]:3001";
+            audience = "http://server:3001";
+            policies = [{
+              issuer = "http://server:3002";
+              duration = "1h";
+              required_claims.repository = "foo";
+              permissions."*" = {
+                pull = true;
+                push = true;
+                create_cache = true;
+                configure_cache = true;
+              };
+            }];
+          };
         };
         services.oidc-test-server = {
           enable = true;

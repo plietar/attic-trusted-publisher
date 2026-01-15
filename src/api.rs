@@ -46,7 +46,8 @@ async fn token_endpoint(
         .map(|token| Json(TokenResponse { token }))
 }
 
-pub async fn run(listen: &str, config: Config) -> anyhow::Result<()> {
+pub async fn run(config: Config) -> anyhow::Result<()> {
+    let listener = tokio::net::TcpListener::bind(&config.listen).await?;
     let app = Router::new()
         .route("/_trusted-publisher/token", post(token_endpoint))
         .layer(
@@ -55,7 +56,6 @@ pub async fn run(listen: &str, config: Config) -> anyhow::Result<()> {
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
         .with_state(Arc::new(config));
-    let listener = tokio::net::TcpListener::bind(listen).await?;
     axum::serve(listener, app).await?;
     Ok(())
 }

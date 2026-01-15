@@ -11,10 +11,6 @@
         options = {
           services.attic-trusted-publisher = {
             enable = lib.mkEnableOption "attic-trusted-publisher";
-            listen = lib.mkOption {
-              type = lib.types.str;
-              default = "127.0.0.1:8080";
-            };
             settings = lib.mkOption {
               type = format.type;
               default = { };
@@ -38,7 +34,7 @@
           systemd.services.attic-trusted-publisher = {
             wantedBy = [ "multi-user.target" ];
             serviceConfig = {
-              ExecStart = "${lib.getExe self'.packages.attic-trusted-publisher} api --listen ${cfg.listen} --config ${configFile}";
+              ExecStart = "${lib.getExe self'.packages.attic-trusted-publisher} api --config ${configFile}";
               EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
               DynamicUser = true;
               User = cfg.user;
