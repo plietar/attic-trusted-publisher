@@ -17,6 +17,7 @@ jobs:
 
     - run: |
         nix build --no-link --print-out-paths -L .#attic-trusted-publisher > paths.txt
+        nix flake check -L
 
     - run: |
         nix run --inputs-from . nixpkgs#cachix -- push attic-trusted-publisher < paths.txt

@@ -8,6 +8,12 @@ use jsonwebtoken::jwk::{Jwk, JwkSet, KeyAlgorithm};
 use serde::Deserialize;
 use std::collections::HashMap;
 
+pub enum VerifierError {
+    CannotFetchKey(anyhow::Error),
+    InvalidClaim { claim: String },
+    EmptyRequiredClaims,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct UnverifiedClaims {
     pub iss: String,
@@ -66,7 +72,7 @@ pub async fn resolve_key(issuer: &str, kid: &str) -> anyhow::Result<Jwk> {
         .ok_or_else(|| anyhow::anyhow!("Unknown key"))
 }
 
-pub fn check_claims(policy: &Policy, claims: &Claims) -> anyhow::Result<()> {
+pub fn check_claims(policy: &Policy, claims: &Claims) -> Result<(), VerifierError> {
     if policy.required_claims.is_empty() {
         bail!("Policy has empty required claims, refusing to proceed.");
     }
