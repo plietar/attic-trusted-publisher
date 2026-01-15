@@ -97,6 +97,9 @@ long-lived tokens to be issued. The ID token must be valid at the time of the
 exchange, but the issued token will last as long as the policy's `duration`
 option.
 
+An alternative solution would be to periodically obtain new ID tokens and
+exchange them for attic tokens. This requires a bit more work from the client.
+
 ## Client usage
 
 The following command obtains an OIDC token based on its environment, exchanges
@@ -108,7 +111,7 @@ nix run github:plietar/attic-trusted-publisher login http://localhost:8081
 
 Most commonly you will want to pass the result to the `attic login` command:
 ```
-attic login http://localhost:8080 http://attic.example.com $(nix run github:plietar/attic-trusted-publisher login http://localhost:8081)
+attic login http://localhost:8080 $(nix run github:plietar/attic-trusted-publisher login http://localhost:8081)
 ```
 
 It supports running in GitHub Actions using the `ACTIONS_ID_TOKEN_REQUEST_URL`

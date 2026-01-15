@@ -1,8 +1,8 @@
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use itertools::Itertools;
 use jsonwebtoken::{Algorithm, EncodingKey};
-use serde::de;
 use serde::Deserialize;
+use serde::de;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::net::SocketAddr;
