@@ -1,5 +1,5 @@
 { self, moduleWithSystem, ... }: {
-  imports = [ ./basic.nix ./reverse-proxy.nix ];
+  imports = [ ./basic.nix ./reverse-proxy.nix ./asymmetric.nix ];
 
   perSystem = { pkgs, ... }: {
     packages.oidc-test-server = pkgs.writers.writePython3Bin "oidc-test-server"
